@@ -223,3 +223,99 @@ async def test_list_users_valid_parameters(async_client: AsyncClient, admin_toke
     json_response = response.json()
     assert 'items' in json_response
     assert json_response["total"] >= len(json_response["items"])
+
+ assert mock_send_email.called  # Ensures that the email service was called
+
+# Test Cases for User Profile Update
+# Successful Profile Update Test
+@pytest.mark.asyncio
+async def test_update_profile_success(async_client, verified_user_and_token):
+    """
+    Test that an authenticated user can successfully update their profile with valid data.
+    """
+    user, access_token = verified_user_and_token
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # Updated profile data
+    updated_data = {
+        "first_name": "UpdatedFirstName",
+        "last_name": "UpdatedLastName",
+        "bio": "This is a test bio for profile update.",
+        "profile_picture_url": "https://www.example.com/new_profile.jpg",
+        "linkedin_profile_url": "https://www.linkedin.com/in/test-user",
+        "github_profile_url": "https://github.com/test-user"
+    }
+
+    # Send PUT request to update the profile
+    response = await async_client.put("/update-profile/", json=updated_data, headers=headers)
+    
+    # Assertions for success
+    assert response.status_code == 200
+    response_payload = response.json()
+    assert response_payload["first_name"] == updated_data["first_name"]
+    assert response_payload["last_name"] == updated_data["last_name"]
+    assert response_payload["bio"] == updated_data["bio"]
+    assert response_payload["profile_picture_url"] == updated_data["profile_picture_url"]
+    assert response_payload["linkedin_profile_url"] == updated_data["linkedin_profile_url"]
+    assert response_payload["github_profile_url"] == updated_data["github_profile_url"]
+
+
+# Unauthorized Profile Update Test
+@pytest.mark.asyncio
+async def test_update_profile_unauthorized(async_client: AsyncClient):
+    """
+    Test that an unauthorized user (invalid or missing token) cannot update a profile.
+    """
+    # Invalid token provided in headers
+    invalid_headers = {"Authorization": "Bearer invalid_token"}
+
+    # Attempt profile update without a valid token
+    response = await async_client.put(
+        "/update-profile/", 
+        json={"nickname": "newNickname"}, 
+        headers=invalid_headers
+    )
+
+    # Assertions for unauthorized access
+    assert response.status_code == 401
+    error_response = response.json()
+    assert "detail" in error_response
+    assert error_response["detail"] == "Could not validate credentials"
+
+
+# Duplicate Nickname Test
+@pytest.mark.asyncio
+async def test_update_user_profile_duplicate_nickname(async_client, db_session, verified_user_and_token):
+    """
+    Test that a user cannot update their profile to a nickname that already exists.
+    """
+    # Create a second user with an existing nickname
+    existing_user_data = {
+        "nickname": "ExistingUser",
+        "first_name": "First",
+        "last_name": "Last",
+        "email": "existinguser@example.com",
+        "hashed_password": hash_password("Secure*1234!"),
+        "role": UserRole.AUTHENTICATED,
+        "email_verified": True,
+        "is_locked": False,
+    }
+    existing_user = User(**existing_user_data)
+    db_session.add(existing_user)
+    await db_session.commit()
+
+    # Attempt to update the nickname to an already existing one
+    user, access_token = verified_user_and_token
+    headers = {"Authorization": f"Bearer {access_token}"}
+    conflicting_data = {"nickname": "ExistingUser"}
+
+    # Send PUT request
+    response = await async_client.put(
+        "/update-profile/", 
+        json=conflicting_data, 
+        headers=headers
+    )
+
+    # Assertions for duplicate nickname
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Nickname already exists"

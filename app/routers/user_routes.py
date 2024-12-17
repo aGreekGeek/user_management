@@ -27,7 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_user, get_db, get_email_service, require_role
 from app.schemas.pagination_schema import EnhancedPagination
 from app.schemas.token_schema import TokenResponse
-from app.schemas.user_schemas import LoginRequest, UserBase, UserCreate, UserListResponse, UserResponse, UserUpdate
+from app.schemas.user_schemas import LoginRequest, UserBase, UserCreate, UserListResponse, UserUpdateProfile, UserResponse, UserUpdate
 from app.services.user_service import UserService
 from app.services.jwt_service import create_access_token
 from app.utils.link_generation import create_user_links, generate_pagination_links
@@ -253,3 +253,76 @@ async def verify_email(user_id: UUID, token: str, db: AsyncSession = Depends(get
     if await UserService.verify_email_with_token(db, user_id, token):
         return {"message": "Email verified successfully"}
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
+
+# User Profile Management
+@router.put(
+    "/update-profile/",
+    response_model=UserResponse,
+    name="update_profile",
+    tags=["User Profile Management"]
+)
+async def update_profile(
+    payload: UserUpdateProfile,
+    request: Request,
+    db_session: AsyncSession = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+    user_context: dict = Depends(require_role(["ADMIN", "MANAGER", "AUTHENTICATED"]))
+):
+    """
+    Endpoint to update a user's profile.
+    
+    This API allows authorized users (ADMIN, MANAGER, AUTHENTICATED roles) to make changes to their profile data, 
+    such as updating their nickname and bio. It ensures nickname uniqueness and returns the updated user profile 
+    with relevant HATEOAS links for further actions.
+
+    Args:
+        payload (UserUpdateProfile): A schema defining the user profile fields to update.
+        request (Request): The request object, used to construct HATEOAS links.
+        db_session (AsyncSession): Asynchronous database session for performing queries.
+        token (str): OAuth2 access token retrieved via dependency injection.
+        user_context (dict): User information extracted and validated from the token.
+
+    Raises:
+        HTTPException: 
+            - 404 if the user does not exist.
+            - 400 if the desired nickname is already taken by another user.
+
+    Returns:
+        UserResponse: Updated user profile information with links for related operations.
+    """
+
+    # Retrieve the current user based on the email in the OAuth2 token
+    token_payload = get_current_user(token)
+    email = token_payload.get("user_email")
+    existing_user = await UserService.get_by_email(db_session, email)
+
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Ensure the new nickname is unique if it has been updated
+    if payload.nickname and payload.nickname != existing_user.nickname:
+        nickname_in_use = await UserService.get_by_nickname(db_session, payload.nickname)
+        if nickname_in_use:
+            raise HTTPException(status_code=400, detail="Nickname already exists")
+
+    # Extract updatable fields and apply changes
+    update_fields = payload.model_dump(exclude_unset=True)
+    updated_user = await UserService.update(db_session, existing_user.id, update_fields)
+
+    # Return the updated profile, including HATEOAS links
+    return UserResponse.model_construct(
+        id=updated_user.id,
+        first_name=updated_user.first_name,
+        last_name=updated_user.last_name,
+        nickname=updated_user.nickname,
+        bio=updated_user.bio,
+        role=updated_user.role,
+        is_professional=updated_user.is_professional,
+        last_login_at=updated_user.last_login_at,
+        profile_picture_url=updated_user.profile_picture_url,
+        github_profile_url=updated_user.github_profile_url,
+        linkedin_profile_url=updated_user.linkedin_profile_url,
+        created_at=updated_user.created_at,
+        updated_at=updated_user.updated_at,
+        links=create_user_links(updated_user.id, request)
+    )

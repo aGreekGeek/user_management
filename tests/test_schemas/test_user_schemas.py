@@ -2,8 +2,7 @@ import uuid
 import pytest
 from pydantic import ValidationError
 from datetime import datetime
-from app.schemas.user_schemas import UserBase, UserCreate, UserUpdate, UserResponse, UserListResponse, LoginRequest
-
+from app.schemas.user_schemas import UserBase, UserCreate, UserUpdate, UserResponse, UserListResponse, LoginRequest, UserUpdateProfile
 # Fixtures for common test data
 @pytest.fixture
 def user_base_data():
@@ -128,3 +127,47 @@ def test_email_validation(user_create_data, input_email, expected_email, expecte
     else:
         user = UserCreate(**user_data)
         assert user.email == expected_email, "Email not acceptable."
+
+# Tests for UserUpdateProfile Schema
+
+# Fixture: Single field update with a valid value
+@pytest.fixture
+def single_field_update_data():
+    """
+    Provides a single valid field for updating the user profile.
+    """
+    return {"nickname": "updated_nickname"}
+
+# Fixture: All fields set to None (invalid case)
+@pytest.fixture
+def all_fields_none_update_data():
+    """
+    Provides user profile data where all fields are explicitly set to None.
+    Used to test validation errors.
+    """
+    return {
+        "nickname": None,
+        "first_name": None,
+        "last_name": None,
+        "bio": None,
+        "profile_picture_url": None,
+        "linkedin_profile_url": None,
+        "github_profile_url": None,
+    }
+
+# Test Case: Validate successful update with a single field
+def test_user_update_profile_valid(single_field_update_data):
+    """
+    Test that UserUpdateProfile accepts and validates a single field update.
+    """
+    profile_update = UserUpdateProfile(**single_field_update_data)
+    assert profile_update.nickname == single_field_update_data["nickname"]
+
+# Test Case: Validate failure when all fields are None
+def test_user_update_profile_invalid(all_fields_none_update_data):
+    """
+    Test that UserUpdateProfile raises a validation error when all fields are None.
+    """
+    with pytest.raises(ValidationError) as error_info:
+        UserUpdateProfile(**all_fields_none_update_data)
+    assert "At least one field must be provided for update" in str(error_info.value)
