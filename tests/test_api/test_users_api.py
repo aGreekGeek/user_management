@@ -279,8 +279,8 @@ async def test_update_profile_success(async_client, verified_user_and_token):
     }
 
     # Send PUT request to update the profile
-    response = await async_client.put("/update-profile/", json=updated_data, headers=headers)
-    
+    response = await async_client.put("/update-profile/", json=updated_user_data, headers=headers)
+
     # Assertions for success
     assert response.status_code == 200
     response_payload = response.json()

@@ -291,7 +291,7 @@ async def update_profile(
     user_email = current_user_info['user_email']
     user = await UserService.get_by_email(db, user_email)
 
-    if not existing_user:
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # Ensure the new nickname is unique if it has been updated

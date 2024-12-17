@@ -49,7 +49,7 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/myappdb  # Configure the DATABASE_URL environment variable for tests
         continue-on-error: true
-        run: pytest --cov
+        run: pytest
 
   build-and-push-docker:
     needs: test
