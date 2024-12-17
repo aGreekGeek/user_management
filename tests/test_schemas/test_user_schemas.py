@@ -116,6 +116,8 @@ email_validation_cases = [
     ("jane.doe@gmail.com", "jane.doe@gmail.com", None),  # Valid .com domain
     ("info@john.doe", None, "Email domain not accepted"),  # Invalid TLD
     ("admin@local.host", None, "Email domain not accepted"),
+]
+
 @pytest.mark.parametrize("input_email, expected_email, expected_error", email_validation_cases)
 def test_email_validation(user_create_data, input_email, expected_email, expected_error):
     user_data = {**user_create_data, "email": input_email}
