@@ -32,26 +32,26 @@
 
 ## 📝✏️ Links to NEW Tests ✏️📝
 
-[Test for Email Verification Errors](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_services/test_user_service.py#L166-L199)
-[Test for Duplicate Email Errors](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_services/test_user_service.py#L217-L261)
-[Test for creating user with unique nickname](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_services/test_user_service.py#L201-L215)
-[Test for Pro-Status Updates and Errors](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_services/test_user_service.py#L264-L279)
-[Email Validation Test](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_schemas/test_user_schemas.py#L135-L153)
-[Functional tests for new User Profile Management Feature](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_api/test_users_api.py#L262-L315)
-[Tests for Password Validation](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_schemas/test_user_schemas.py#L112-L133)
-[Test for new Skip and Limit Parameters](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_api/test_users_api.py#L196-L229)
-[Test for User Profile Management Feature, Edge/Functional](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_schemas/test_user_schemas.py#L155-L254)
-[Test for Errors while Updating Pro-Status](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_api/test_users_api.py#L356-L381)
+-[Test for Email Verification Errors](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_services/test_user_service.py#L166-L199)
+-[Test for Duplicate Email Errors](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_services/test_user_service.py#L217-L261)
+-[Test for creating user with unique nickname](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_services/test_user_service.py#L201-L215)
+-[Test for Pro-Status Updates and Errors](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_services/test_user_service.py#L264-L279)
+-[Email Validation Test](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_schemas/test_user_schemas.py#L135-L153)
+-[Functional tests for new User Profile Management Feature](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_api/test_users_api.py#L262-L315)
+-[Tests for Password Validation](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_schemas/test_user_schemas.py#L112-L133)
+-[Test for new Skip and Limit Parameters](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_api/test_users_api.py#L196-L229)
+-[Test for User Profile Management Feature, Edge/Functional](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_schemas/test_user_schemas.py#L155-L254)
+-[Test for Errors while Updating Pro-Status](https://github.com/aGreekGeek/user_management/blob/be8b2445660a296806549bb58070df76e5ea4c14/tests/test_api/test_users_api.py#L356-L381)
 <br>
 
 ## DockerHub Link
-[Link to my Dockerhub Repo](https://hub.docker.com/repository/docker/agreekgeek/user_management/general)
+-[Link to my Dockerhub Repo](https://hub.docker.com/repository/docker/agreekgeek/user_management/general)
 <br>
 
 ## 🎯Github Actions🎯
-[Link to GitHub Workflows](https://github.com/aGreekGeek/user_management/actions)
+-[Link to GitHub Workflows](https://github.com/aGreekGeek/user_management/actions)
 <br>
 
 ## Commit History
-[Link to GitHub Commits](https://github.com/aGreekGeek/user_management/commits/main/)
+-[Link to GitHub Commits](https://github.com/aGreekGeek/user_management/commits/main/)
 <br>
