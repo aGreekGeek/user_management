@@ -261,6 +261,7 @@ async def test_create_user_with_urls(async_client: AsyncClient, admin_token: str
 
 # Test Cases for User Profile Update
 # Successful Profile Update Test
+
 @pytest.mark.asyncio
 async def test_update_profile_success(async_client, verified_user_and_token):
     """
