@@ -48,8 +48,8 @@ jobs:
       - name: Run tests with Pytest
         env:
           DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/myappdb  # Configure the DATABASE_URL environment variable for tests
-        continue-on-error: true
-        run: pytest --maxfail=0 --tb=short
+        continue-on-error: false
+        run: pytest
 
   build-and-push-docker:
     needs: test
@@ -83,4 +83,4 @@ jobs:
           format: 'table'
           exit-code: '1' # Fail the job if vulnerabilities are found
           ignore-unfixed: true
-          severity: 'CRITICAL'
+          severity: 'CRITICAL, HIGH'
