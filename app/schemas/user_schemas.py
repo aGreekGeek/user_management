@@ -35,7 +35,7 @@ class UserBase(BaseModel):
         #Email Lowecase Normalized
         normalized_email = v.lower()
         #limit top level domains
-        if not re.search(r"\.(com|ord|edu|net|gov)$", normalized_email):
+        if not re.search(r"\.(com|org|edu|net|gov)$", normalized_email):
             raise ValueError("Email domain not accepted")
         return normalized_email
     

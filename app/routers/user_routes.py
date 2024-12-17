@@ -21,6 +21,7 @@ Key Highlights:
 from builtins import dict, int, len, str
 from datetime import timedelta
 from uuid import UUID
+from fastapi.exceptions import RequestValidationError
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -175,12 +176,11 @@ async def list_users(
 ):
 
     #Introduce skip and limit parameters
-    if skip < 0 or limit <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Parameters 'skip' and 'limit' must be non-negative integers. Received skip={skip} and limit={limit}."
-        )
-
+if skip < 0 or limit <= 0:
+raise HTTPException(
+    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    detail="Parameters 'skip' and 'limit' must be non-negative integers."
+)
     total_users = await UserService.count(db)
 
     users = await UserService.list_users(db, skip, limit)

@@ -225,7 +225,13 @@ async def test_list_users_valid_parameters(async_client: AsyncClient, admin_toke
     assert 'items' in json_response
     assert json_response["total"] >= len(json_response["items"])
 
-    assert mock_send_email.called  # Ensures that the email service was called
+ with patch("app.services.email_service.EmailService.send_user_email", new_callable=AsyncMock) as mock_send_email:
+    response = await async_client.get(
+        "/users/?skip=0&limit=10",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert mock_send_email.called
 
 # Test Cases for User Profile Update
 # Successful Profile Update Test
@@ -333,14 +339,19 @@ async def test_update_professional_status_as_admin(async_client: AsyncClient, ad
     new_professional_status = True  # Set the desired professional status
 
     # Mock the email service to avoid actual email dispatch
-    with patch(
-        "app.services.email_service.EmailService.send_professional_status_email_update",
-        new_callable=AsyncMock
-    ) as mock_email_service:
-        response = await async_client.put(
-            f"/users/{admin_user.id}/set-professional/{new_professional_status}",
-            headers=headers
-        )
+ with patch(
+    "app.services.email_service.EmailService.send_professional_status_email_update",
+    new_callable=AsyncMock
+) as mock_email_service:
+    response = await async_client.put(
+        f"/users/{admin_user.id}/set-professional/{new_professional_status}",
+        headers=headers
+    )
+
+    assert response.status_code == 200
+    assert response.json()["is_professional"] == new_professional_status
+    mock_email_service.assert_awaited_once()
+
 
     # Assertions to verify the response
     assert response.status_code == 200

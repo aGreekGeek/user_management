@@ -255,6 +255,25 @@ async def update_professional_status(
             logger.error(f"User with ID {user_id} not found after status update attempt.")
             return None
 
+@classmethod
+async def update_professional_status(
+    cls, session: AsyncSession, user_id: UUID, is_professional: bool, email_service: EmailService
+) -> Optional[User]:
+    user = await cls.get_by_id(session, user_id)
+    if not user:
+        return None
+
+    user.is_professional = is_professional
+    session.add(user)
+    await session.commit()
+    
+    try:
+        await email_service.send_professional_status_email_update(user)
+    except Exception as e:
+        logger.error(f"Failed to send professional status email: {e}")
+    
+    return user
+
     except Exception as update_error:
         logger.error(f"An error occurred while updating 'is_professional' status: {update_error}")
         return None
