@@ -1,6 +1,8 @@
 from builtins import ValueError, any, bool, str
 from pydantic import BaseModel, EmailStr, Field, validator, root_validator
 from typing import Optional, List
+from urllib.parse import urlparse
+from typing import ClassVar
 from datetime import datetime
 from enum import Enum
 import uuid
@@ -43,8 +45,27 @@ class UserBase(BaseModel):
         from_attributes = True
 
 class UserCreate(UserBase):
-    email: EmailStr = Field(..., example="john.doe@example.com")
     password: str = Field(..., example="Secure*1234")
+
+    # Define min_length and max_length as class variables that are not model fields
+    min_length: ClassVar[int] = 8
+    max_length: ClassVar[int] = 50
+
+    @validator('password')
+    def password_validation(cls, value):
+        if len(value) < cls.min_length or len(value) > cls.max_length:
+            raise ValueError(f'Password must be between {cls.min_length} and {cls.max_length} characters')
+        if not re.search("[A-Z]", value):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search("[a-z]", value):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r"\d", value):
+            raise ValueError('Password must contain at least one digit')
+        if not re.search("[!@#$%^&*(),.?\":{}|<>]", value):
+            raise ValueError('Password must contain at least one special character')
+        if " " in value:
+            raise ValueError('Password must not contain spaces')
+        return value
 
 class UserUpdate(UserBase):
     email: Optional[EmailStr] = Field(None, example="john.doe@example.com")
@@ -92,10 +113,6 @@ class UserListResponse(BaseModel):
     size: int = Field(..., example=10)
 
 # New Feature: Class for updating user profile
-from typing import Optional
-from pydantic import BaseModel, Field, root_validator
-
-
 class UserUpdateProfile(BaseModel):
     """
     Schema for updating a user's profile.

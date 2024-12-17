@@ -21,7 +21,6 @@ Key Highlights:
 from builtins import dict, int, len, str
 from datetime import timedelta
 from uuid import UUID
-from fastapi.exceptions import RequestValidationError
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -157,6 +156,8 @@ async def create_user(user: UserCreate, request: Request, db: AsyncSession = Dep
         last_name=created_user.last_name,
         profile_picture_url=created_user.profile_picture_url,
         nickname=created_user.nickname,
+        github_profile_url=created_user.github_profile_url,
+        linkedin_profile_url=created_user.linkedin_profile_url,
         email=created_user.email,
         role=created_user.role,
         last_login_at=created_user.last_login_at,
@@ -175,21 +176,21 @@ async def list_users(
     current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
 ):
 
-    #Introduce skip and limit parameters
+    # Validate skip and limit parameters
     if skip < 0 or limit <= 0:
         raise HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        detail="Parameters 'skip' and 'limit' must be non-negative integers."
-    )
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Parameters 'skip' and 'limit' must be non-negative integers. Received skip={skip} and limit={limit}."
+        )
+
     total_users = await UserService.count(db)
 
     users = await UserService.list_users(db, skip, limit)
     user_responses = [
         UserResponse.model_validate(user) for user in users
     ]
-    
     pagination_links = generate_pagination_links(request, skip, limit, total_users)
-    
+
     # Construct the final response with pagination details
     return UserListResponse(
         items=user_responses,
@@ -254,19 +255,14 @@ async def verify_email(user_id: UUID, token: str, db: AsyncSession = Depends(get
         return {"message": "Email verified successfully"}
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
 
-# User Profile Management
-@router.put(
-    "/update-profile/",
-    response_model=UserResponse,
-    name="update_profile",
-    tags=["User Profile Management"]
-)
+# User Profile Management 
+@router.put("/update-profile/", response_model=UserResponse, name="update_profile", tags=["User Profile Management"])
 async def update_profile(
-    payload: UserUpdateProfile,
-    request: Request,
-    db_session: AsyncSession = Depends(get_db),
-    token: str = Depends(oauth2_scheme),
-    user_context: dict = Depends(require_role(["ADMIN", "MANAGER", "AUTHENTICATED"]))
+    user_update: UserUpdateProfile, 
+    request: Request, 
+    db: AsyncSession = Depends(get_db), 
+    token: str = Depends(oauth2_scheme), 
+    current_user: dict = Depends(require_role(["ADMIN", "MANAGER", "AUTHENTICATED"]))
 ):
     """
     Endpoint to update a user's profile.
@@ -285,29 +281,29 @@ async def update_profile(
     Raises:
         HTTPException: 
             - 404 if the user does not exist.
-            - 400 if the desired nickname is already taken by another user.
 
     Returns:
         UserResponse: Updated user profile information with links for related operations.
     """
 
     # Retrieve the current user based on the email in the OAuth2 token
-    token_payload = get_current_user(token)
-    email = token_payload.get("user_email")
-    existing_user = await UserService.get_by_email(db_session, email)
+    current_user_info = get_current_user(token)
+    user_email = current_user_info['user_email']
+    user = await UserService.get_by_email(db, user_email)
 
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # Ensure the new nickname is unique if it has been updated
-    if payload.nickname and payload.nickname != existing_user.nickname:
-        nickname_in_use = await UserService.get_by_nickname(db_session, payload.nickname)
-        if nickname_in_use:
-            raise HTTPException(status_code=400, detail="Nickname already exists")
+    if user_update.nickname != user.nickname:
+        user_with_existing_nickname = await UserService.get_by_nickname(db, user_update.nickname)
+        if user_with_existing_nickname:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nickname already exists")
 
     # Extract updatable fields and apply changes
-    update_fields = payload.model_dump(exclude_unset=True)
-    updated_user = await UserService.update(db_session, existing_user.id, update_fields)
+    user_data = user_update.model_dump(exclude_unset=True)
+    updated_user = await UserService.update(db, user.id, user_data)
+
 
     # Return the updated profile, including HATEOAS links
     return UserResponse.model_construct(
@@ -328,21 +324,8 @@ async def update_profile(
     )
 
 # Update User Professional Status
-@router.put(
-    "/users/{user_id}/set-professional/{is_professional}",
-    response_model=UserResponse,
-    name="set_professional",
-    tags=["User Management Requires (Admin or Manager Roles)"]
-)
-async def update_professional_status(
-    user_id: UUID,
-    is_professional: bool,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    email_service: EmailService = Depends(get_email_service),
-    token: str = Depends(oauth2_scheme),
-    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
-):
+@router.put("/users/{user_id}/set-professional/{is_professional}", response_model=UserResponse, name="set_professional", tags=["User Management Requires (Admin or Manager Roles)"])
+async def update_professional_status(user_id: UUID, is_professional: bool, request: Request, db: AsyncSession = Depends(get_db), email_service: EmailService = Depends(get_email_service), token: str = Depends(oauth2_scheme), current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))):
     """
     Endpoint to update the 'is_professional' status of a user.
 
@@ -369,10 +352,7 @@ async def update_professional_status(
     # Retrieve the target user by their ID
     user = await UserService.get_by_id(db, user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     # Perform the update operation on the 'is_professional' field
     updated_user = await UserService.update_professional_status(

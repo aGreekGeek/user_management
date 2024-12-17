@@ -193,7 +193,7 @@ async def test_list_users_unauthorized(async_client, user_token):
     )
     assert response.status_code == 403  # Forbidden, as expected for regular user
 
-# Created Tests to check fo skip and limit parameters
+# Created Tests to check for skip and limit parameters
 @pytest.mark.asyncio
 async def test_list_users_invalid_skip_parameter(async_client: AsyncClient, admin_token: str):
     response = await async_client.get(
@@ -202,6 +202,7 @@ async def test_list_users_invalid_skip_parameter(async_client: AsyncClient, admi
     )
     assert response.status_code == 422
     assert "Parameters 'skip' and 'limit' must be non-negative integers" in response.json()["detail"]
+
 @pytest.mark.asyncio
 async def test_list_users_invalid_limit_parameter(async_client: AsyncClient, admin_token: str):
     response = await async_client.get(
@@ -210,10 +211,12 @@ async def test_list_users_invalid_limit_parameter(async_client: AsyncClient, adm
     )
     assert response.status_code == 422
     assert "Parameters 'skip' and 'limit' must be non-negative integers" in response.json()["detail"]
+
 @pytest.fixture
 async def total_users(db_session):
     count = await UserService.count(db_session)
     return count
+
 @pytest.mark.asyncio
 async def test_list_users_valid_parameters(async_client: AsyncClient, admin_token: str):
     response = await async_client.get(
@@ -225,13 +228,36 @@ async def test_list_users_valid_parameters(async_client: AsyncClient, admin_toke
     assert 'items' in json_response
     assert json_response["total"] >= len(json_response["items"])
 
- with patch("app.services.email_service.EmailService.send_user_email", new_callable=AsyncMock) as mock_send_email:
-    response = await async_client.get(
-        "/users/?skip=0&limit=10",
-        headers={"Authorization": f"Bearer {admin_token}"}
-    )
-    assert response.status_code == 200
-    assert mock_send_email.called
+# Test create_user while mocking email
+@pytest.mark.asyncio
+async def test_create_user_with_urls(async_client: AsyncClient, admin_token: str):
+    user_data = {
+        "email": "new.user@example.com",
+        "nickname": "new_user",
+        "first_name": "New",
+        "last_name": "User",
+        "bio": "New user bio",
+        "profile_picture_url": "https://example.com/profiles/newuser.jpg",
+        "linkedin_profile_url": "https://linkedin.com/in/newuser",
+        "github_profile_url": "https://github.com/newuser",
+        "role": "ANONYMOUS",
+        "password": "Secure*1234"
+    }
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    with patch("app.services.email_service.EmailService.send_user_email", new_callable=AsyncMock) as mock_send_email:
+        response = await async_client.post("/users/", json=user_data, headers=headers)
+
+        assert response.status_code == 201
+        response_data = response.json()
+        assert response_data["email"] == "new.user@example.com"
+        assert response_data["nickname"] == "new_user"
+        assert response_data["first_name"] == "New"
+        assert response_data["last_name"] == "User"
+        assert response_data["bio"] == "New user bio"
+        assert response_data["linkedin_profile_url"] == "https://linkedin.com/in/newuser"
+        assert response_data["github_profile_url"] == "https://github.com/newuser"
+        assert mock_send_email.called  # Ensures that the email service was called
 
 # Test Cases for User Profile Update
 # Successful Profile Update Test
@@ -240,17 +266,15 @@ async def test_update_profile_success(async_client, verified_user_and_token):
     """
     Test that an authenticated user can successfully update their profile with valid data.
     """
-    user, access_token = verified_user_and_token
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    # Updated profile data
-    updated_data = {
-        "first_name": "UpdatedFirstName",
-        "last_name": "UpdatedLastName",
-        "bio": "This is a test bio for profile update.",
-        "profile_picture_url": "https://www.example.com/new_profile.jpg",
-        "linkedin_profile_url": "https://www.linkedin.com/in/test-user",
-        "github_profile_url": "https://github.com/test-user"
+    user, token = verified_user_and_token
+    headers = {"Authorization": f"Bearer {token}"}
+    updated_user_data = {
+        "first_name": "TestUpdate",
+        "last_name": "Profile",
+        "bio": "Testing successful user profile update",
+        "profile_picture_url": "https://www.example.com/updateduser.jpg",
+        "linkedin_profile_url": "https://linkedin.com/in/updateduser",
+        "github_profile_url": "https://github.com/updateduser"
     }
 
     # Send PUT request to update the profile
@@ -274,20 +298,20 @@ async def test_update_profile_unauthorized(async_client: AsyncClient):
     Test that an unauthorized user (invalid or missing token) cannot update a profile.
     """
     # Invalid token provided in headers
-    invalid_headers = {"Authorization": "Bearer invalid_token"}
+    headers = {"Authorization": "Bearer invalid_or_missing_token"}
+
 
     # Attempt profile update without a valid token
     response = await async_client.put(
-        "/update-profile/", 
-        json={"nickname": "newNickname"}, 
-        headers=invalid_headers
+        "/update-profile/",
+        json={"nickname": "newNick"},
+        headers=headers
     )
 
     # Assertions for unauthorized access
     assert response.status_code == 401
-    error_response = response.json()
     assert "detail" in error_response
-    assert error_response["detail"] == "Could not validate credentials"
+    assert response.json()["detail"] == "Could not validate credentials"
 
 
 # Duplicate Nickname Test
@@ -297,29 +321,30 @@ async def test_update_user_profile_duplicate_nickname(async_client, db_session, 
     Test that a user cannot update their profile to a nickname that already exists.
     """
     # Create a second user with an existing nickname
-    existing_user_data = {
-        "nickname": "ExistingUser",
-        "first_name": "First",
-        "last_name": "Last",
-        "email": "existinguser@example.com",
-        "hashed_password": hash_password("Secure*1234!"),
-        "role": UserRole.AUTHENTICATED,
-        "email_verified": True,
-        "is_locked": False,
-    }
-    existing_user = User(**existing_user_data)
-    db_session.add(existing_user)
+    first_user, token = verified_user_and_token
+    test_user_1 = {
+            "nickname": "TestUser",
+            "first_name": "Test",
+            "last_name": "User",
+            "email": "testuser@example.com",
+            "hashed_password": hash_password("Secure*1234!"),
+            "role": UserRole.AUTHENTICATED,
+            "email_verified": True,
+            "is_locked": False,
+        }
+    first_test_user = User(**test_user_1)
+    db_session.add(first_test_user)
     await db_session.commit()
 
     # Attempt to update the nickname to an already existing one
-    user, access_token = verified_user_and_token
-    headers = {"Authorization": f"Bearer {access_token}"}
-    conflicting_data = {"nickname": "ExistingUser"}
-
+    headers = {"Authorization": f"Bearer {token}"}
+    updated_user_data = {
+        "nickname": "TestUser",
+    }
     # Send PUT request
     response = await async_client.put(
-        "/update-profile/", 
-        json=conflicting_data, 
+        "/update-profile/",
+        json=conflicting_data,
         headers=headers
     )
 
@@ -331,58 +356,25 @@ async def test_update_user_profile_duplicate_nickname(async_client, db_session, 
 
 @pytest.mark.asyncio
 async def test_update_professional_status_as_admin(async_client: AsyncClient, admin_user, admin_token):
-    """
-    Verify that an admin user can successfully update a user's professional status.
-    Also ensures that the email notification service is called as expected without actually sending an email.
-    """
-    headers = {"Authorization": f"Bearer {admin_token}"}
-    new_professional_status = True  # Set the desired professional status
-
-    # Mock the email service to avoid actual email dispatch
- with patch(
     "app.services.email_service.EmailService.send_professional_status_email_update",
-    new_callable=AsyncMock
-) as mock_email_service:
-    response = await async_client.put(
-        f"/users/{admin_user.id}/set-professional/{new_professional_status}",
-        headers=headers
-    )
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    is_professional_status = True  # or False depending on the test case
+
+    with patch('app.services.email_service.EmailService.send_professional_status_email_update', new_callable=AsyncMock) as mock_send_email:
+        response = await async_client.put(f"/users/{admin_user.id}/set-professional/{is_professional_status}", headers=headers)
 
     assert response.status_code == 200
-    assert response.json()["is_professional"] == new_professional_status
-    mock_email_service.assert_awaited_once()
-
-
-    # Assertions to verify the response
-    assert response.status_code == 200
-    assert response.json()["is_professional"] == new_professional_status
-
-    # Confirm that the email service was invoked exactly once
-    mock_email_service.assert_awaited_once()
-
+    assert response.json()['is_professional'] == is_professional_status
+    mock_send_email.assert_awaited_once()  # Ensures that the email service was called
 
 @pytest.mark.asyncio
 async def test_update_professional_status_email_service_failure(async_client, admin_user, admin_token):
-    """
-    Ensure that updating a user's professional status succeeds even if the email service fails.
-    """
     headers = {"Authorization": f"Bearer {admin_token}"}
-    professional_status_flag = True
+    is_professional_status = True
 
-    # Simulate a failure in the email notification service
-    with patch(
-        "app.services.email_service.EmailService.send_professional_status_email_update",
-        side_effect=Exception("Simulated email service failure"),
-        new_callable=AsyncMock
-    ) as mock_email_service:
-        response = await async_client.put(
-            f"/users/{admin_user.id}/set-professional/{professional_status_flag}",
-            headers=headers
-        )
+    with patch('app.services.email_service.EmailService.send_professional_status_email_update', side_effect=Exception("Email failure"), new_callable=AsyncMock) as mock_send_email:
+        response = await async_client.put(f"/users/{admin_user.id}/set-professional/{is_professional_status}", headers=headers)
 
-    # Assertions to ensure the status update still succeeds
-    assert response.status_code == 200
-    assert response.json()["is_professional"] == professional_status_flag
-
-    # Verify that the email service was attempted despite the failure
-    mock_email_service.assert_awaited_once()
+    assert response.status_code == 200  # Ensure update still succeeds
+    assert response.json()['is_professional'] == is_professional_status
+    mock_send_email.assert_awaited_once()  # Ensure the email attempt was made
