@@ -197,3 +197,49 @@ async def test_create_user_with_email_failure(db_session, email_service):
 
         # Verifies error logging
         mock_logger.error.assert_called_with("Error sending verification email: Email service failure")
+
+# Tests for Feature: Update User Professional Status
+
+# Test Case: Update professional status to 'True'
+async def test_update_professional_status_true(db_session, user, email_service):
+    """
+    Verify that a user's professional status can be successfully updated to True.
+    """
+    # Update the user's professional status
+    result_user = await UserService.update_professional_status(
+        session=db_session, user_id=user.id, is_professional=True, email_service=email_service
+    )
+
+    # Assertions
+    assert result_user is not None
+    assert result_user.is_professional is True
+
+
+# Test Case: Update professional status to 'False'
+async def test_update_professional_status_false(db_session, user, email_service):
+    """
+    Verify that a user's professional status can be successfully updated to False.
+    """
+    # Update the professional status to False
+    result_user = await UserService.update_professional_status(
+        session=db_session, user_id=user.id, is_professional=False, email_service=email_service
+    )
+
+    # Assertions
+    assert result_user is not None
+    assert result_user.is_professional is False
+
+
+# Test Case: Attempt to update professional status for a non-existent user
+async def test_update_professional_status_invalid_user_id(db_session, email_service):
+    """
+    Ensure that attempting to update the professional status for an invalid user ID returns None.
+    """
+    # Use an invalid user ID to simulate a missing user
+    invalid_user_id = "invalid_id"
+    result_user = await UserService.update_professional_status(
+        session=db_session, user_id=invalid_user_id, is_professional=True, email_service=email_service
+    )
+
+    # Assertions
+    assert result_user is None
