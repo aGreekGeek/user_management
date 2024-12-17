@@ -224,7 +224,7 @@ async def test_list_users_valid_parameters(async_client: AsyncClient, admin_toke
     assert 'items' in json_response
     assert json_response["total"] >= len(json_response["items"])
 
- assert mock_send_email.called  # Ensures that the email service was called
+    assert mock_send_email.called  # Ensures that the email service was called
 
 # Test Cases for User Profile Update
 # Successful Profile Update Test
