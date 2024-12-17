@@ -132,7 +132,7 @@ def test_password_validation(user_create_data, password, expected_error):
         user = UserCreate(**user_data)
         assert user.password == password, "Valid password should pass validation without errors."
 
-@pytest.mark.parametrize("input_email, expected_email, expected_error", email_validation_cases)
+@pytest.mark.parametrize("input_email, expected_email, expected_error")
 def test_email_validation(user_create_data, input_email, expected_email, expected_error):
     user_data = {**user_create_data, "email": input_email}
     if expected_error:
