@@ -1,6 +1,6 @@
 from builtins import str
 import pytest
-from app.services.user_services import UserService
+from app.services.user_service import UserService
 from httpx import AsyncClient
 from app.main import app
 from app.models.user_model import User, UserRole
