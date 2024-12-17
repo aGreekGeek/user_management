@@ -1,6 +1,6 @@
 from builtins import range
 import pytest
-from unittest.moc import AsyncMock, patch
+from unittest.mock import AsyncMock, patch
 from sqlalchemy import select
 from app.dependencies import get_settings
 from app.models.user_model import User, UserRole
