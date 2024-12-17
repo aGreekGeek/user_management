@@ -1,5 +1,6 @@
 from builtins import str
 import pytest
+from unittest.mock import patch, AsyncMock
 from app.services.user_service import UserService
 from httpx import AsyncClient
 from app.main import app
