@@ -176,11 +176,11 @@ async def list_users(
 ):
 
     #Introduce skip and limit parameters
-if skip < 0 or limit <= 0:
-raise HTTPException(
-    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-    detail="Parameters 'skip' and 'limit' must be non-negative integers."
-)
+    if skip < 0 or limit <= 0:
+        raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail="Parameters 'skip' and 'limit' must be non-negative integers."
+    )
     total_users = await UserService.count(db)
 
     users = await UserService.list_users(db, skip, limit)
