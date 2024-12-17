@@ -1,5 +1,5 @@
-# The User Management System
-## IS_601 Final Project
+# 🎉✨🔥 The User Management System 🎉✨🔥
+##🚀IS_601 Final Project🚀
 <br>
 
 
