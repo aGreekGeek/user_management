@@ -132,15 +132,6 @@ def test_password_validation(user_create_data, password, expected_error):
         user = UserCreate(**user_data)
         assert user.password == password, "Valid password should pass validation without errors."
 
-# Tests for validate_email (email validation)
-email_validation_cases = [
-    ("JOHN.DOE@EXAMPLE.COM", "john.doe@example.com", None),  # Test email normalization
-    ("john.doe@university.edu", "john.doe@university.edu", None),  # Valid .edu domain
-    ("jane.doe@gmail.com", "jane.doe@gmail.com", None),  # Valid .com domain
-    ("info@john.doe", None, "Email must end with one of the following domains: .com, .org, .edu, .net, .gov"),  # Invalid TLD
-    ("admin@local.host", None, "Email must end with one of the following domains: .com, .org, .edu, .net, .gov"),  # Another invalid TLD
-]
-
 @pytest.mark.parametrize("input_email, expected_email, expected_error", email_validation_cases)
 def test_email_validation(user_create_data, input_email, expected_email, expected_error):
     user_data = {**user_create_data, "email": input_email}
