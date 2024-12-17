@@ -29,7 +29,16 @@ class UserBase(BaseModel):
     role: UserRole
 
     _validate_urls = validator('profile_picture_url', 'linkedin_profile_url', 'github_profile_url', pre=True, allow_reuse=True)(validate_url)
- 
+
+    @validator('email')
+    def validate_email(cls, v):
+        #Email Lowecase Normalized
+        normalized_email = v.lower()
+        #limit top level domains
+        if not re.search(r"\.(com|ord|edu|net|gov)$", normalized_email):
+            raise ValueError("Email domain not accepted")
+        return normalized_email
+    
     class Config:
         from_attributes = True
 

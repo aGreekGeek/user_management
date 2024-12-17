@@ -108,3 +108,21 @@ def test_user_base_url_invalid(url, user_base_data):
     user_base_data["profile_picture_url"] = url
     with pytest.raises(ValidationError):
         UserBase(**user_base_data)
+
+# Tests to validate email parameters
+email_validation_cases = [
+    ("JOHN.DOE@EXAMPLE.COM", "john.doe@example.com", None),
+    ("john.doe@university.edu", "john.doe@university.edu", None),  # Valid .edu domain
+    ("jane.doe@gmail.com", "jane.doe@gmail.com", None),  # Valid .com domain
+    ("info@john.doe", None, "Email domain not accepted"),  # Invalid TLD
+    ("admin@local.host", None, "Email domain not accepted"),
+@pytest.mark.parametrize("input_email, expected_email, expected_error", email_validation_cases)
+def test_email_validation(user_create_data, input_email, expected_email, expected_error):
+    user_data = {**user_create_data, "email": input_email}
+    if expected_error:
+        with pytest.raises(ValidationError) as excinfo:
+            UserCreate(**user_data)
+        assert expected_error in str(excinfo.value), f"Expected error message: '{expected_error}'"
+    else:
+        user = UserCreate(**user_data)
+        assert user.email == expected_email, "Email not acceptable."
