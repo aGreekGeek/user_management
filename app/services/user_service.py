@@ -206,3 +206,55 @@ class UserService:
             await session.commit()
             return True
         return False
+
+# Feature: Update User Professional Status
+@classmethod
+async def update_professional_status(
+    cls, session: AsyncSession, user_id: UUID, is_professional: bool, email_service: EmailService
+) -> Optional[User]:
+    """
+    Updates the 'is_professional' status of a user in the database.
+
+    Args:
+        session (AsyncSession): The database session for executing queries.
+        user_id (UUID): The unique identifier of the user whose status will be updated.
+        is_professional (bool): The new professional status to set (True/False).
+        email_service (EmailService): The email service used to notify the user.
+
+    Returns:
+        Optional[User]: The updated User object if successful, otherwise None.
+
+    Logs:
+        - Successful status update.
+        - Email sending errors (if any occur during the notification process).
+        - Errors during the update process or user retrieval.
+    """
+    try:
+        # Construct and execute the query to update the is_professional status
+        update_query = (
+            update(User)
+            .where(User.id == user_id)
+            .values(is_professional=is_professional)
+            .execution_options(synchronize_session="fetch")
+        )
+        await cls._execute_query(session, update_query)
+
+        # Retrieve the updated user to confirm the changes
+        updated_user = await cls.get_by_id(session, user_id)
+        if updated_user:
+            session.refresh(updated_user)  # Refresh the session to reflect the updated state
+            logger.info(f"Successfully updated 'is_professional' status for user {user_id}.")
+
+            # Attempt to send a notification email about the update
+            try:
+                await email_service.send_professional_status_email_update(updated_user)
+            except Exception as email_error:
+                logger.error(f"Failed to send professional status update email: {email_error}")
+            return updated_user
+        else:
+            logger.error(f"User with ID {user_id} not found after status update attempt.")
+            return None
+
+    except Exception as update_error:
+        logger.error(f"An error occurred while updating 'is_professional' status: {update_error}")
+        return None

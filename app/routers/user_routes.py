@@ -326,3 +326,77 @@ async def update_profile(
         updated_at=updated_user.updated_at,
         links=create_user_links(updated_user.id, request)
     )
+
+# Update User Professional Status
+@router.put(
+    "/users/{user_id}/set-professional/{is_professional}",
+    response_model=UserResponse,
+    name="set_professional",
+    tags=["User Management Requires (Admin or Manager Roles)"]
+)
+async def update_professional_status(
+    user_id: UUID,
+    is_professional: bool,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    email_service: EmailService = Depends(get_email_service),
+    token: str = Depends(oauth2_scheme),
+    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
+):
+    """
+    Endpoint to update the 'is_professional' status of a user.
+
+    This endpoint is restricted to users with the 'ADMIN' or 'MANAGER' roles. It updates the professional status
+    of a specific user, identified by their unique ID. If the user is not found, it returns a 404 error.
+
+    Args:
+        user_id (UUID): The unique identifier of the user to update.
+        is_professional (bool): Flag to set the user's professional status (True or False).
+        request (Request): The request object for constructing HATEOAS links.
+        db (AsyncSession): Asynchronous database session for querying and updating user data.
+        email_service (EmailService): Service for sending notifications, injected as a dependency.
+        token (str): OAuth2 access token for user authentication.
+        current_user (dict): The validated current user's data, restricted to ADMIN or MANAGER roles.
+
+    Raises:
+        HTTPException: 
+            - 404 if the user with the specified ID does not exist.
+
+    Returns:
+        UserResponse: Updated user profile data, including the new professional status and relevant HATEOAS links.
+    """
+
+    # Retrieve the target user by their ID
+    user = await UserService.get_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Perform the update operation on the 'is_professional' field
+    updated_user = await UserService.update_professional_status(
+        db=db,
+        user_id=user_id,
+        is_professional=is_professional,
+        email_service=email_service
+    )
+
+    # Return the updated user profile with HATEOAS links
+    return UserResponse.model_construct(
+        id=updated_user.id,
+        nickname=updated_user.nickname,
+        first_name=updated_user.first_name,
+        last_name=updated_user.last_name,
+        bio=updated_user.bio,
+        role=updated_user.role,
+        email=updated_user.email,
+        profile_picture_url=updated_user.profile_picture_url,
+        github_profile_url=updated_user.github_profile_url,
+        linkedin_profile_url=updated_user.linkedin_profile_url,
+        is_professional=updated_user.is_professional,
+        last_login_at=updated_user.last_login_at,
+        created_at=updated_user.created_at,
+        updated_at=updated_user.updated_at,
+        links=create_user_links(updated_user.id, request)
+    )
