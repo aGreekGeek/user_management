@@ -319,3 +319,58 @@ async def test_update_user_profile_duplicate_nickname(async_client, db_session, 
     # Assertions for duplicate nickname
     assert response.status_code == 400
     assert response.json()["detail"] == "Nickname already exists"
+
+# Tests for the 'update_professional_status' Route
+
+@pytest.mark.asyncio
+async def test_update_professional_status_as_admin(async_client: AsyncClient, admin_user, admin_token):
+    """
+    Verify that an admin user can successfully update a user's professional status.
+    Also ensures that the email notification service is called as expected without actually sending an email.
+    """
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    new_professional_status = True  # Set the desired professional status
+
+    # Mock the email service to avoid actual email dispatch
+    with patch(
+        "app.services.email_service.EmailService.send_professional_status_email_update",
+        new_callable=AsyncMock
+    ) as mock_email_service:
+        response = await async_client.put(
+            f"/users/{admin_user.id}/set-professional/{new_professional_status}",
+            headers=headers
+        )
+
+    # Assertions to verify the response
+    assert response.status_code == 200
+    assert response.json()["is_professional"] == new_professional_status
+
+    # Confirm that the email service was invoked exactly once
+    mock_email_service.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_update_professional_status_email_service_failure(async_client, admin_user, admin_token):
+    """
+    Ensure that updating a user's professional status succeeds even if the email service fails.
+    """
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    professional_status_flag = True
+
+    # Simulate a failure in the email notification service
+    with patch(
+        "app.services.email_service.EmailService.send_professional_status_email_update",
+        side_effect=Exception("Simulated email service failure"),
+        new_callable=AsyncMock
+    ) as mock_email_service:
+        response = await async_client.put(
+            f"/users/{admin_user.id}/set-professional/{professional_status_flag}",
+            headers=headers
+        )
+
+    # Assertions to ensure the status update still succeeds
+    assert response.status_code == 200
+    assert response.json()["is_professional"] == professional_status_flag
+
+    # Verify that the email service was attempted despite the failure
+    mock_email_service.assert_awaited_once()
