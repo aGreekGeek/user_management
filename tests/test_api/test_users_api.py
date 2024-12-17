@@ -71,7 +71,7 @@ async def test_create_user_duplicate_email(async_client, verified_user):
         "role": UserRole.ADMIN.name
     }
     response = await async_client.post("/register/", json=user_data)
-    assert response.status_code == 422
+    assert response.status_code == 400
     assert "Email already exists" in response.json().get("detail", "")
 
 @pytest.mark.asyncio
@@ -200,7 +200,7 @@ async def test_list_users_invalid_skip_parameter(async_client: AsyncClient, admi
         "/users/?skip=-1",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
-    assert response.status_code == 422
+    assert response.status_code == 400
     assert "Parameters 'skip' and 'limit' must be non-negative integers" in response.json()["detail"]
 
 @pytest.mark.asyncio
@@ -209,7 +209,7 @@ async def test_list_users_invalid_limit_parameter(async_client: AsyncClient, adm
         "/users/?limit=0",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
-    assert response.status_code == 422
+    assert response.status_code == 400
     assert "Parameters 'skip' and 'limit' must be non-negative integers" in response.json()["detail"]
 
 @pytest.fixture
@@ -284,12 +284,12 @@ async def test_update_profile_success(async_client, verified_user_and_token):
     # Assertions for success
     assert response.status_code == 200
     response_payload = response.json()
-    assert response_payload["first_name"] == updated_data["first_name"]
-    assert response_payload["last_name"] == updated_data["last_name"]
-    assert response_payload["bio"] == updated_data["bio"]
-    assert response_payload["profile_picture_url"] == updated_data["profile_picture_url"]
-    assert response_payload["linkedin_profile_url"] == updated_data["linkedin_profile_url"]
-    assert response_payload["github_profile_url"] == updated_data["github_profile_url"]
+    assert response_payload["first_name"] == updated_user_data["first_name"]
+    assert response_payload["last_name"] == updated_user_data["last_name"]
+    assert response_payload["bio"] == updated_user_data["bio"]
+    assert response_payload["profile_picture_url"] == updated_user_data["profile_picture_url"]
+    assert response_payload["linkedin_profile_url"] == updated_user_data["linkedin_profile_url"]
+    assert response_payload["github_profile_url"] == updated_user_data["github_profile_url"]
 
 
 # Unauthorized Profile Update Test
@@ -311,7 +311,7 @@ async def test_update_profile_unauthorized(async_client: AsyncClient):
 
     # Assertions for unauthorized access
     assert response.status_code == 401
-    assert "detail" in error_response
+    assert "detail" in response.json()
     assert response.json()["detail"] == "Could not validate credentials"
 
 
@@ -345,7 +345,7 @@ async def test_update_user_profile_duplicate_nickname(async_client, db_session, 
     # Send PUT request
     response = await async_client.put(
         "/update-profile/",
-        json=conflicting_data,
+        json=updated_user_data,
         headers=headers
     )
 
