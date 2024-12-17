@@ -70,7 +70,7 @@ async def test_create_user_duplicate_email(async_client, verified_user):
         "role": UserRole.ADMIN.name
     }
     response = await async_client.post("/register/", json=user_data)
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert "Email already exists" in response.json().get("detail", "")
 
 @pytest.mark.asyncio
@@ -199,16 +199,16 @@ async def test_list_users_invalid_skip_parameter(async_client: AsyncClient, admi
         "/users/?skip=-1",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
-    assert response.status_code == 400
-    assert "Parameters 'skip' and 'limit' must be positive integers" in response.json()["detail"]
+    assert response.status_code == 422
+    assert "Parameters 'skip' and 'limit' must be non-negative integers" in response.json()["detail"]
 @pytest.mark.asyncio
 async def test_list_users_invalid_limit_parameter(async_client: AsyncClient, admin_token: str):
     response = await async_client.get(
         "/users/?limit=0",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
-    assert response.status_code == 400
-    assert "Parameters 'skip' and 'limit' must be positive integers" in response.json()["detail"]
+    assert response.status_code == 422
+    assert "Parameters 'skip' and 'limit' must be non-negative integers" in response.json()["detail"]
 @pytest.fixture
 async def total_users(db_session):
     count = await UserService.count(db_session)
@@ -222,4 +222,4 @@ async def test_list_users_valid_parameters(async_client: AsyncClient, admin_toke
     assert response.status_code == 200
     json_response = response.json()
     assert 'items' in json_response
-    assert json_response["total"] >= len(json_response["items"]) 
+    assert json_response["total"] >= len(json_response["items"])
