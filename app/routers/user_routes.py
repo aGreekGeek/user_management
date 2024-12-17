@@ -169,13 +169,21 @@ async def create_user(user: UserCreate, request: Request, db: AsyncSession = Dep
 async def list_users(
     request: Request,
     skip: int = 0,
-    limit: int = 10,
+    limit: int = 20,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
 ):
-    total_users = await UserService.count(db)
-    users = await UserService.list_users(db, skip, limit)
 
+    #Introduce skip and limit parameters
+    if skip < 0 or limit <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Parameters 'skip' and 'limit' must be non-negative integers. Received skip={skip} and limit={limit}."
+        )
+
+    total_users = await UserService.count(db)
+
+    users = await UserService.list_users(db, skip, limit)
     user_responses = [
         UserResponse.model_validate(user) for user in users
     ]
